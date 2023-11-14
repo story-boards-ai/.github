@@ -1,0 +1,2 @@
+# .github
+story-boards-ai
