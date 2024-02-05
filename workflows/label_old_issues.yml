@@ -1,0 +1,47 @@
+name: Label Old Issues
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Runs at midnight every day
+
+jobs:
+  label-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Label old issues
+        uses: actions/github-script@0.9.0
+        with:
+          script: |
+            const github = require('@actions/github');
+            const core = require('@actions/core');
+            const octokit = github.getOctokit(process.env.GITHUB_TOKEN);
+
+            async function labelOldIssues() {
+              const { data: issues } = await octokit.issues.listForRepo({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                state: 'open',
+              });
+
+              const thresholdDays = 30; // For example, label issues older than 30 days
+              for (const issue of issues) {
+                const createdAt = new Date(issue.created_at);
+                const today = new Date();
+                const ageInDays = Math.floor((today - createdAt) / (1000 * 60 * 60 * 24));
+                
+                if (ageInDays > thresholdDays) {
+                  await octokit.issues.addLabels({
+                    owner: github.context.repo.owner,
+                    repo: github.context.repo.repo,
+                    issue_number: issue.number,
+                    labels: ['old-issue'] // Replace with your desired label
+                  });
+                }
+              }
+            }
+
+            labelOldIssues();
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
